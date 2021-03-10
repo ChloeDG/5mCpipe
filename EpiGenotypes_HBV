@@ -1,0 +1,59 @@
+#HBV paper figure 3
+
+rm(list=ls())
+dat1.1<-read.delim("methylation_calls.tsv")
+dim(dat1.1)
+head(dat1.1)
+length(unique(dat1.1$start)) 
+length(unique(dat1.1$read_name))
+table(dat1.1$start-dat1.1$end < 0) 
+table(dat1.1$start-dat1.1$end == 0) 
+test <- dat1.1[(dat1.1$start-dat1.1$end == 0), ]
+mat1 <- data.frame(matrix(nrow = length(unique(test$start)), ncol = length(unique(test$read_name))))
+rownames(mat1) <- paste0("CpG.",unique(test$start))
+colnames(mat1) <- unique(test$read_name)
+read <- unique(test$read_name)
+mat1[1:5,1:10]
+read <- unique(dat1.1$read_name)
+for (i in 1:length(read)) {
+  temp1 <- as.data.frame(dat1.1[dat1.1$read_name==read[i], ], drop = F)
+  temp1 <- aggregate(temp1$log_lik_ratio,by=list(temp1$start),data=temp1,FUN=mean)
+  colnames(temp1) <- c("start","log_lik_ratio")
+  rownames(temp1) <- paste0("CpG.", temp1$start)
+  int1 <- intersect(rownames(temp1), rownames(mat1))
+  for(j in 1:length(int1)){
+    mat1[int1[j], i] <- temp1$log_lik_ratio[j]
+  }
+  rm(temp1, int1)
+}
+table(is.na(mat1))
+mat1[1:20,1:20]
+#methylation distribution of individual reads 
+library(vioplot)
+vioplot(mat1[, 1:20], xlab="Read ID", ylab="Log likelyhood methylation", main="5mC distribution in individual HBV reads")
+mat2 <- as.matrix(mat1)
+mat2[is.na(mat2)] <- 0
+library(NMF)
+library(pheatmap) # I like esoteric packages!
+library(RColorBrewer)
+###############################
+mydata <- t(mat2)
+
+fit <- kmeans(mydata[ ,], 4) 
+# get cluster means
+aggregate(mydata,by=list(fit$cluster),FUN=mean)
+# append cluster assignment
+mydata <- data.frame(mydata, fit$cluster) 
+mydata <- mydata[order(mydata$fit.cluster),] 
+
+#make annotation df 
+mat_col <- data.frame(group = mydata$fit.cluster)
+rownames(mat_col) <- row.names(mydata)
+mat_colors <- list(group = brewer.pal(4, "Set1"))
+names(mat_col$group) <- unique(mydata)
+mydata$fit.cluster <- NULL
+
+
+pheatmap(mydata, cluster_rows = FALSE, cluster_cols = TRUE, scale = "row", clustering_distance_cols = "euclidean", annotation_row = mat_col, annotation_colors = mat_colors, 
+         clustering_distance_rows = "euclidean", fontsize_row = 1, fontsize_col = 5, main = "HBV Epigenetic Variation\n'Epigenotypes'", color = colorRampPalette(c("navy", "white", "firebrick3"))(50))
+
