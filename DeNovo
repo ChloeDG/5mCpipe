@@ -1,0 +1,17 @@
+conda install -c conda-forge -c bioconda -c defaults canu
+
+canu -d run1 -p HBV genomeSize=3.2g useGrid=false -nanopore-raw ${Fastq} contigFilter="2 0 1.0 0.5 0"
+
+#polish assembly with medaka
+#medaka consensus x2
+
+medaka_consensus -i merged.fastq -d consensus.fasta -o ${output} -t 4 -m r941_min_high_g303
+
+# assess quality of assembly with dandiff 
+conda install dandiff 
+
+mkdir analysis
+
+dnadiff --prefix output/draft.dnadiff ref.fa draft.fasta
+
+dnadiff --prefix output/polished.dnadiff ref.fa polished.fa
