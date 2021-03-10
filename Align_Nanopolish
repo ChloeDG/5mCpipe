@@ -1,0 +1,34 @@
+#Pipeline: ALIGNMENT AND NANOPOLISH 
+
+mkdir ${OUTPATH}
+mkdir ${OUTPATH}/fastq
+#cat ${FASTQ}/*fastq > ${OUTPATH}/fastq/merged.fastq
+guppy_aligner --input_path ${FASTQ} --save_path ${OUTPATH} --align_ref ${REF}
+echo "baming"
+samtools view -S -b ${OUTPATH}/subset.sam > ${OUTPATH}/subset.bam
+samtools sort ${OUTPATH}/subset.bam -o ${OUTPATH}/subset.sorted.bam
+samtools index ${OUTPATH}/subset.sorted.bam
+
+cd '/home/hh/nanopolish'
+./nanopolish index -d ${FAST5PATH} ${OUTPATH}/subset.fastq
+echo -e "\e[1;31m Calling methylation now, nearly done YEWWWWWW \e[0m"
+
+./nanopolish call-methylation -t 8 -r ${OUTPATH}/subset.fastq -b ${OUTPATH}/subset.sorted.bam -g ${REF} > ${OUTPATH}/methylation_calls.tsv
+
+/home/hh/nanopolish/scripts/calculate_methylation_frequency.py ${OUTPATH}/methylation_calls.tsv > ${OUTPATH}/methylation_frequency.tsv
+
+B02
+mkdir ${OUTPATH2}
+guppy_aligner --input_path ${FASTQ2} --save_path ${OUTPATH2} --align_ref ${REF}
+echo "baming"
+samtools view -S -b ${OUTPATH2}/subset.sam > ${OUTPATH2}/subset.bam
+samtools sort ${OUTPATH2}/subset.bam -o ${OUTPATH2}/subset.sorted.bam
+samtools index ${OUTPATH2}/subset.sorted.bam
+
+cd '/home/hh/nanopolish'
+./nanopolish index -d ${FAST5PATH} ${OUTPATH2}/subset.fastq
+echo -e "\e[1;31m Calling methylation now, nearly done YEWWWWWW \e[0m"
+
+./nanopolish call-methylation -t 8 -r ${OUTPATH2}/subset.fastq -b ${OUTPATH2}/subset.sorted.bam -g ${REF} > ${OUTPATH2}/methylation_calls.tsv
+
+/home/hh/nanopolish/scripts/calculate_methylation_frequency.py ${OUTPATH2}/methylation_calls.tsv > ${OUTPATH2}/methylation_frequency.tsv
